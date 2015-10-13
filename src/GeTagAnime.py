@@ -193,7 +193,8 @@ def do_SVM(train_data,test_data,train_label,test_label):
     F = np.array([k.stats()[-2] for k in abcd()])
     tC = Counter(test_label)
     FreqClass=[tC[kk]/len(test_label) for kk in list(set(test_label))]
-    ExptF = np.sum(F*FreqClass)
+    #ExptF = np.sum(F*FreqClass)
+    ExptF= np.mean(F)
     return ExptF
 
 "Change the number of features"

@@ -4,6 +4,7 @@ from pdb import set_trace
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import svm
+from sklearn.neighbors import NearestNeighbors
 from sklearn.feature_extraction import FeatureHasher
 from random import randint,random,seed,shuffle
 from time import time
@@ -93,19 +94,6 @@ def make_feature(corpus,method=tf,norm=l2normalize,n_features=100):
     return mat,label
 
 
-"split data according to target label"
-def split_two(corpus,label,target_label):
-    pos=[]
-    neg=[]
-    for i,lab in enumerate(label):
-        if lab==target_label:
-            pos.append(i)
-        else:
-            neg.append(i)
-    positive=corpus[pos]
-    negative=corpus[neg]
-    return {'pos': positive,'neg': negative}
-
 
 """
 "sample without replacement"
@@ -119,55 +107,57 @@ def sample_norep(data,num,k=0):
 
 
 "smote"
-def smote(data,num,k=5):
-    corpus=[]
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='ball_tree').fit(data)
-    distances, indices = nbrs.kneighbors(data)
-    for i in range(0,num):
-        mid=randint(0,len(data)-1)
-        nn=indices[mid,randint(1,k)]
-        datamade=[]
-        for j in range(0,len(data[mid])):
-            gap=random()
-            datamade.append((data[nn,j]-data[mid,j])*gap+data[mid,j])
-        corpus.append(datamade)
-    corpus=np.array(corpus)
-    return corpus
+def smote(data,label,num,k=5):
+    labellist=list(set(label))
+    dict={}
+    for l in labellist:
+        corpus=[]
+        id=[i for i,x in enumerate(label) if x==l]
+        sub=data[id]
+        nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='ball_tree').fit(sub)
+        distances, indices = nbrs.kneighbors(sub)
+        for i in range(0,num):
+            mid=randint(0,len(sub)-1)
+            nn=indices[mid,randint(1,k)]
+            datamade=[]
+            for j in range(0,len(sub[mid])):
+                gap=random()
+                datamade.append((sub[nn,j]-sub[mid,j])*gap+sub[mid,j])
+            corpus.append(datamade)
+        dict[l]=np.array(corpus)
+    return dict
 
 "sample"
-def sample_pos_neg(pos,neg,posx,num_train,num_test):
+def sample(data,data_smote,label,num_train,num_test):
 
-    num_train_pos=int(num_train*len(posx)/(len(posx)+len(neg)))
-    num_train_neg=int(num_train*len(neg)/(len(posx)+len(neg)))
-    num_test_pos=int(num_test*len(pos)/(len(pos)+len(neg)))
-    num_test_neg=int(num_test*len(neg)/(len(pos)+len(neg)))
-    if len(pos)==len(posx):
-        temp_pos=posx[np.random.choice(len(pos),(num_train_pos+num_test_pos),replace=False)]
-        train_pos=temp_pos[:num_train_pos]
-        test_pos=temp_pos[num_train_pos:]
+    if id(data)==id(data_smote):
+        ind=np.random.choice(len(data),(num_train+num_test),replace=False)
+        train_ind=ind[:num_train]
+        test_ind=ind[num_train:]
+        data_train=data[train_ind]
+        data_test=data[test_ind]
+        label_train=np.array(label)[train_ind]
+        label_test=np.array(label)[test_ind]
     else:
-        train_pos=posx[np.random.choice(len(posx),num_train_pos,replace=False)]
-        test_pos=pos[np.random.choice(len(pos),num_test_pos,replace=False)]
-    temp_neg=neg[np.random.choice(len(neg),(num_train_neg+num_test_neg),replace=False)]
-    train_neg=temp_neg[:num_train_neg]
-    test_neg=temp_neg[num_train_neg:]
-    data_train=np.vstack((train_pos,train_neg))
-    data_test=np.vstack((test_pos,test_neg))
+        label_list=data_smote.keys()
+        num=int(num_train/len(label_list))
+        data_train=[]
+        label_train=[]
+        for l in label_list:
+            if data_train==[]:
+                data_train=data_smote[l][np.random.choice(len(data_smote[l]),num,replace=False)]
+            else:
+                data_train=np.vstack((data_train,data_smote[l][np.random.choice(len(data_smote[l]),num,replace=False)]))
+            label_train.extend([l]*num)
+        label_train=np.array(label_train)
+        tmp=range(0,len(label_train))
+        shuffle(tmp)
+        data_train=data_train[tmp]
+        label_train=label_train[tmp]
+        test_ind=np.random.choice(len(data),num_test,replace=False)
+        data_test=data[test_ind]
+        label_test=np.array(label)[test_ind]
 
-    label_train=['pos']*len(train_pos)+['neg']*len(train_neg)
-    label_test=['pos']*len(test_pos)+['neg']*len(test_neg)
-    label_train=np.array(label_train)
-    label_test=np.array(label_test)
-
-    tmp=range(0,len(data_train))
-    shuffle(tmp)
-    data_train=data_train[tmp]
-    label_train=label_train[tmp]
-
-    tmp=range(0,len(data_test))
-    shuffle(tmp)
-    data_test=data_test[tmp]
-    label_test=label_test[tmp]
 
     return {'train': data_train,'test': data_test, 'label_train': label_train, 'label_test': label_test}
 
@@ -175,11 +165,11 @@ def sample_pos_neg(pos,neg,posx,num_train,num_test):
 
 
 "sample_training"
-def sample_training(pos,neg,posx,num_train,num_test,repeats=30):
+def sample_training(data,data_smote,label,num_train,num_test,repeats=30):
 
     for i in range(0,repeats):
 
-        result=sample_pos_neg(pos,neg,posx,num_train,num_test)
+        result=sample(data,data_smote,label,num_train,num_test)
 
 
         data_train=result["train"]
@@ -191,7 +181,6 @@ def sample_training(pos,neg,posx,num_train,num_test,repeats=30):
         "SVM"
         F=do_SVM(data_train,data_test,label_train,label_test)
 
-
         yield F
 
 
@@ -202,48 +191,37 @@ def do_SVM(train_data,test_data,train_label,test_label):
     prediction=clf.predict(test_data)
     abcd=ABCD(before=test_label,after=prediction)
     F = np.array([k.stats()[-2] for k in abcd()])
-    labeltwo=list(set(test_label))
-    if labeltwo[0]=='positive': labelone=0
-    else: labelone=1
-    try:
-        return F[labelone]
-    except: pass
-
-        yield F
+    tC = Counter(test_label)
+    FreqClass=[tC[kk]/len(test_label) for kk in list(set(test_label))]
+    ExptF = np.sum(F*FreqClass)
+    return ExptF
 
 "Change the number of features"
 @run
 def feature_num_change(filename='',filepath='',filetype='.txt',thres=20,issmote="smote",
                        neighbors=5,feature=tf,norm=l2normalize,repeats=30,n_range=10):
-    load=readfile(filename=filepath+filename+filetype,thres=thres)
-    corpus=load['corpus']
-    targetlist=load['targetlist']
-    try:
-        target_label=targetlist[0]
-    except:
-        print("No matched label found.")
-    feature_num=len(vocabulary(corpus))
+    corpus=readfile(filename=filepath+filename+filetype,thres=thres)
+    #feature_num=len(vocabulary(corpus))
 
-    feature_num=5120*4
+    feature_num=5120
 
     F_feature_num=[]
     trace_feature_num=[]
     for i in range(1,n_range+1):
         n_feature=int(feature_num*(0.5)**(n_range-i))
         data,label=make_feature(corpus,method=feature,norm=norm,n_features=n_feature)
-        split=split_two(corpus=data,label=label,target_label=target_label)
-        pos=split['pos']
-        neg=split['neg']
+
         if issmote=="smote":
-            posx=smote(pos,len(neg),k=neighbors)
-        else: posx=pos
+            num=int(len(data)/len(set(label)))
+            data_smote=smote(data,label,num,k=neighbors)
+        else: data_smote=data
 
         num_train=int(len(data)*0.9)
         num_test=int(len(data)*0.1)
 
 
         #ExptF=[x for x in cross_val(posx,neg,folds=folds)]
-        ExptF=[x for x in sample_training(pos,neg,posx,num_train=num_train,num_test=num_test,
+        ExptF=[x for x in sample_training(data,data_smote,label,num_train=num_train,num_test=num_test,
                                           repeats=repeats)]
         F_feature_num.append([str(n_feature)]+ExptF)
         trace_feature_num.append(n_feature)
@@ -255,25 +233,15 @@ def feature_num_change(filename='',filepath='',filetype='.txt',thres=20,issmote=
 @run
 def train_num_change(filename='',filepath='',filetype='.txt',thres=20,repeats=30,issmote="smote",
                      neighbors=5,feature=tf,norm=l2normalize,n_range=10):
-    load=readfile(filename=filepath+filename+filetype,thres=thres)
-    corpus=load['corpus']
-    targetlist=load['targetlist']
-    try:
-        target_label=targetlist[0]
-    except:
-        print("No matched label found.")
-    feature_num=len(vocabulary(corpus))
+    corpus=readfile(filename=filepath+filename+filetype,thres=thres)
+    #feature_num=len(vocabulary(corpus))
 
     feature_num=5120
     data,label=make_feature(corpus,method=feature,norm=norm,n_features=feature_num)
-    split=split_two(corpus=data,label=label,target_label=target_label)
-    pos=split['pos']
-    neg=split['neg']
     if issmote=="smote":
-        posx=smote(pos,len(neg),k=neighbors)
-    else: posx=pos
-    print("Number of documents: %s" %len(corpus))
-    print("Target label: %s, number: %s" %(target_label,len(pos)))
+        num=int(len(data)/len(set(label)))
+        data_smote=smote(data,label,num,k=neighbors)
+    else: data_smote=data
     F_train_num=[]
 
     num_train_init=int(len(data)*0.9)
@@ -283,7 +251,7 @@ def train_num_change(filename='',filepath='',filetype='.txt',thres=20,repeats=30
     for i in range(1,n_range+1):
         num_train=int(i/n_range*num_train_init)
         num_train_trace.append(num_train)
-        Fdistribution=[x for x in sample_training(pos,neg,posx,num_train=num_train,num_test=num_test,
+        Fdistribution=[x for x in sample_training(data,data_smote,label,num_train=num_train,num_test=num_test,
                                                   repeats=repeats)]
         F_train_num.append([str(num_train)]+Fdistribution)
     rdivDemo(F_train_num)
@@ -318,12 +286,9 @@ def readfile(filename='',thres=20):
             targetlist.append(label)
     targetlist.append('others')
     for doc in corpus:
-        for label in targetlist:
-            if doc[0]==label:
-                break
-            if label=='others':
-                doc[0]='others'
-    return {'corpus': corpus, 'targetlist': targetlist}
+        if doc[0] not in targetlist:
+            doc[0]='others'
+    return corpus
 
 
 

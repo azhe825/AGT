@@ -40,7 +40,7 @@ if __name__ == '__main__':
             plt.plot(trace_feature_num,Y_iqr[is_smote][method.__name__]["mean"],"-.",color=line.get_color(),label="iqr_"+method.__name__)
 
 
-    plt.ylabel("Unweighted F score")
+    plt.ylabel("Fscore_M")
     plt.xlabel("Number of Features")
     plt.legend(bbox_to_anchor=(1.05, 1.0), loc=2, borderaxespad=0.)
     plt.savefig("../fig/result_imbalance_unweighted.png")
@@ -55,7 +55,7 @@ if __name__ == '__main__':
             line,=plt.plot(trace_feature_num,Y_median[is_smote][method.__name__]["mean_weighted"],label="median_"+method.__name__)
             plt.plot(trace_feature_num,Y_iqr[is_smote][method.__name__]["mean_weighted"],"-.",color=line.get_color(),label="iqr_"+method.__name__)
 
-    plt.ylabel("Weighted F score")
+    plt.ylabel("Fscore_mu")
     plt.xlabel("Number of Features")
     plt.legend(bbox_to_anchor=(1.05, 1.0), loc=2, borderaxespad=0.)
     plt.savefig("../fig/result_imbalance_weighted.png")

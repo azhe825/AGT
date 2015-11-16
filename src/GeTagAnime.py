@@ -13,6 +13,8 @@ from sklearn.feature_extraction import FeatureHasher
 from random import randint,random,seed,shuffle
 from time import time
 import pickle
+from nltk.corpus import stopwords
+from nltk.stem.porter import *
 
 "The following two are from RAISE Lab library"
 from ABCD import ABCD
@@ -191,7 +193,9 @@ def smote_max(data,label,k=5):
                 gap=random()
                 newp.append((sub[nn,j]-sub[mid,j])*gap+sub[mid,j])
             tmp.append(newp)
-        datamade=np.vstack((datamade,np.array(tmp)))
+        if tmp:
+            datamade=np.vstack((datamade,np.array(tmp)))
+
     labelmade=np.array(labelmade)
     return datamade, labelmade
 
@@ -345,6 +349,13 @@ def feature_num_change(filename='',filepath='',filetype='.txt',thres=20,is_smote
 
 
 
+"Preprocessing: stemming + stopwords removing"
+def process(txt):
+  stemmer = PorterStemmer()
+  cachedStopWords = stopwords.words("english")
+  return ' '.join([stemmer.stem(word) for word \
+                   in txt.lower().split() if word not \
+                   in cachedStopWords and len(word)>1])
 
 
 "Load data from file to list of lists"
@@ -356,9 +367,10 @@ def readfile(filename='',thres=20):
         for doc in f.readlines():
             doc=doc.lower()
             try:
+                doc=doc.lower()
                 label=doc.split(' >>> ')[1].split()[0]
                 labellst.append(label)
-                corpus.append([label]+doc.split(' >>> ')[0].split())
+                corpus.append([label]+process(doc.split(' >>> ')[0]).split())
             except: pass
     labelcount=Counter(labellst)
     labellst=list(set(labellst))
@@ -381,8 +393,8 @@ if __name__ == '__main__':
     thres=20
     F_feature_num={}
     methods=[SVM,Naive_Bayes,Decision_Tree]
-    #issmote=["smote","no_smote"]
-    issmote=["no_smote"]
+    issmote=["smote","no_smote"]
+    #issmote=["no_smote"]
 
     for is_smote in issmote:
         result=feature_num_change(filename=filename,filepath=filepath,filetype='.txt',thres=thres,is_smote=is_smote,
@@ -418,10 +430,10 @@ if __name__ == '__main__':
                         Y_median[is_smote][method.__name__][key]=[np.median(F_feature_num[is_smote][str(f_num)][method.__name__][key])]
                         Y_iqr[is_smote][method.__name__][key]=[np.percentile(F_feature_num[is_smote][str(f_num)][method.__name__][key],75)-np.percentile(F_feature_num[is_smote][str(f_num)][method.__name__][key],25)]
 
-            line,=plt.plot(trace_feature_num,Y_median[is_smote][method.__name__]["mean"],label="median_unweighted_"+method.__name__)
-            plt.plot(trace_feature_num,Y_iqr[is_smote][method.__name__]["mean"],"-.",color=line.get_color(),label="iqr_unweighted_"+method.__name__)
-            line,=plt.plot(trace_feature_num,Y_median[is_smote][method.__name__]["mean_weighted"],label="median_weighted_"+method.__name__)
-            plt.plot(trace_feature_num,Y_iqr[is_smote][method.__name__]["mean_weighted"],"-.",color=line.get_color(),label="iqr_weighted_"+method.__name__)
+            line,=plt.plot(trace_feature_num,Y_median[is_smote][method.__name__]["mean"],label="median_unweighted_"+is_smote+"_"+method.__name__)
+            plt.plot(trace_feature_num,Y_iqr[is_smote][method.__name__]["mean"],"-.",color=line.get_color(),label="iqr_unweighted_"+is_smote+"_"+method.__name__)
+            line,=plt.plot(trace_feature_num,Y_median[is_smote][method.__name__]["mean_weighted"],label="median_weighted_"+is_smote+"_"+method.__name__)
+            plt.plot(trace_feature_num,Y_iqr[is_smote][method.__name__]["mean_weighted"],"-.",color=line.get_color(),label="iqr_weighted_"+is_smote+"_"+method.__name__)
 
             """
             line,=plt.plot(trace_feature_num,Y_median[is_smote][method.__name__]["mean"],label="median_unweighted_"+method.__name__+"_"+is_smote)

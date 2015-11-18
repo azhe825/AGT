@@ -177,11 +177,10 @@ def smote_max(data,label,k=5):
     for l in labelCont:
         id=[i for i,x in enumerate(label) if x==l]
         sub=data[id]
-        num_s=num-labelCont[l]
         labelmade+=[l]*num
         nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='ball_tree').fit(sub)
         distances, indices = nbrs.kneighbors(sub)
-        for i in range(0,num_s):
+        for i in range(0,num):
             mid=randint(0,len(sub)-1)
             nn=indices[mid,randint(1,k)]
             newp=[]
@@ -189,7 +188,6 @@ def smote_max(data,label,k=5):
                 gap=random()
                 newp.append((sub[nn,j]-sub[mid,j])*gap+sub[mid,j])
             datamade.append(newp)
-        datamade.extend(list(sub))
 
     datamade=np.array(datamade)
     labelmade=np.array(labelmade)

@@ -178,6 +178,9 @@ def smote_max(data,label,k=5):
         id=[i for i,x in enumerate(label) if x==l]
         sub=data[id]
         labelmade+=[l]*num
+        if len(sub)==num:
+            datamade.extend(sub)
+            continue
         nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='ball_tree').fit(sub)
         distances, indices = nbrs.kneighbors(sub)
         for i in range(0,num):

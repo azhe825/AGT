@@ -1,4 +1,8 @@
 # Automatically Generate Tags
+
+### Author:
+ + Zhe Yu (zyu9)
+
 ## Structure
 
 #### data

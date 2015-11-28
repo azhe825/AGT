@@ -18,7 +18,6 @@ from nltk.stem.porter import *
 
 "The following two are from RAISE Lab library"
 from ABCD import ABCD
-from sk import rdivDemo
 
 
 

@@ -42,12 +42,6 @@ def timer(func):
     return inner
 
 
-"vocabulary"
-def vocabulary(lst_of_words):
-  v = []
-  for c in lst_of_words:
-    v.extend(c[1:])
-  return list(set(v))
 
 "term frequency "
 def token_freqs(doc):
